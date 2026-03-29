@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For You ❤️</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--bg:#0a0610;
+--bg2:#1a0b15;
+--accent:#ff4d88;
+--accent-soft:#ff7aa8;
+--text:#e8c7d6; /* darker romantic base text */
+--glass:rgba(255,255,255,0.06);
+--radius:22px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+font-family:'Inter',sans-serif;
+background:radial-gradient(circle at top,var(--bg2),var(--bg));
+color:var(--text);
+overflow:hidden;
+}
+
+/* background glow */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background:
+radial-gradient(circle at 20% 30%, rgba(255,77,136,.25), transparent 40%),
+radial-gradient(circle at 80% 70%, rgba(255,120,170,.2), transparent 45%);
+pointer-events:none;
+}
+
+/* loader */
+#loader{
+position:fixed;
+inset:0;
+background:#050306;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+z-index:999;
+}
+
+.bar{
+width:260px;
+height:4px;
+background:#2b1a24;
+margin-top:20px;
+overflow:hidden;
+border-radius:4px;
+}
+
+.bar span{
+display:block;
+height:100%;
+width:0;
+background:linear-gradient(90deg,var(--accent),var(--accent-soft));
+transition:.3s;
+}
+
+/* screens */
+.screen{
+position:absolute;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+opacity:0;
+transform:translateY(40px);
+transition:.8s;
+padding:20px;
+}
+
+.screen.active{
+opacity:1;
+transform:translateY(0);
+}
+
+.card{
+max-width:760px;
+padding:60px;
+background:var(--glass);
+backdrop-filter:blur(25px);
+border-radius:var(--radius);
+border:1px solid rgba(255,255,255,.08);
+text-align:center;
+box-shadow:0 30px 120px rgba(255,0,120,.25);
+}
+
+h1{
+font-family:'Playfair Display',serif;
+font-size:52px;
+margin-bottom:15px;
+color:#ffb6cc; /* improved heading contrast */
+text-shadow:0 0 15px rgba(255,0,120,.5);
+}
+
+p{
+opacity:.9;
+font-size:18px;
+color:#d9a8bb; /* readable paragraph color */
+}
+
+.gallery{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+gap:18px;
+margin-top:25px;
+}
+
+.gallery img{
+width:100%;
+border-radius:18px;
+transition:.5s;
+filter:brightness(.85);
+}
+
+.gallery img:hover{
+transform:scale(1.05);
+filter:brightness(1);
+}
+
+/* balloons */
+.balloon{
+position:fixed;
+width:60px;
+pointer-events:none;
+z-index:5;
+}
+
+/* hearts */
+.heart{
+position:fixed;
+width:20px;
+height:20px;
+background:var(--accent);
+transform:rotate(45deg);
+pointer-events:none;
+}
+
+.heart::before,
+.heart::after{
+content:"";
+position:absolute;
+width:20px;
+height:20px;
+background:var(--accent);
+border-radius:50%;
+}
+
+.heart::before{ top:-10px;}
+.heart::after{ left:-10px;}
+
+canvas{
+position:fixed;
+inset:0;
+pointer-events:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loader">
+<h1 style="color:#ffb6cc;">Loading…</h1>
+<div class="bar"><span id="progress"></span></div>
+</div>
+
+<div class="screen active">
+<div class="card">
+<h1>Hey ❤️</h1>
+<p>Tap anywhere to continue</p>
+</div>
+</div>
+
+<div class="screen"><div class="card"><h1 id="line1"></h1></div></div>
+<div class="screen"><div class="card"><h1 id="line2"></h1></div></div>
+
+<div class="screen">
+<div class="card">
+<h1>Our Moments</h1>
+<div class="gallery">
+<img src="photo1.jpg">
+<img src="photo2.jpg">
+<img src="photo3.jpg">
+</div>
+</div>
+</div>
+
+<div class="screen"><div class="card"><h1 id="line3"></h1></div></div>
+
+<div class="screen">
+<div class="card">
+<h1>Happy Birthday ❤️</h1>
+<p>You make my world brighter every day.</p>
+</div>
+</div>
+
+<!-- (JS section unchanged below) -->
+
+<canvas id="stars"></canvas>
+<canvas id="fireworks"></canvas>
+
+<audio id="music" loop>
+<source src="music.mp3">
+</audio>
+
+<script>
+/* ---------- SAFE LOADER (no more stuck) ---------- */
+window.addEventListener("load",()=>{
+const loader=document.getElementById("loader");
+const bar=document.getElementById("progress");
+bar.style.width="100%";
+setTimeout(()=>{
+loader.style.display="none";
+},500);
+});
+
+/* ---------- SCREEN NAVIGATION ---------- */
+const screens=[...document.querySelectorAll(".screen")];
+let index=0;
+
+document.addEventListener("click",()=>{
+if(index>=screens.length-1) return;
+
+screens[index].classList.remove("active");
+index++;
+screens[index].classList.add("active");
+
+spawnBalloons(4);
+spawnHearts(6);
+typeText(index);
+
+if(index===screens.length-1) finale();
+});
+
+/* ---------- TYPING ---------- */
+function type(id,text){
+const el=document.getElementById(id);
+let i=0;
+el.textContent="";
+const t=setInterval(()=>{
+el.textContent+=text[i++];
+if(i>=text.length) clearInterval(t);
+},25);
+}
+
+function typeText(i){
+if(i===1) type("line1","I wanted to create something beautiful for you.");
+if(i===2) type("line2","Something more than just a message.");
+if(i===4) type("line3","Because you deserve something truly special.");
+}
+
+/* ---------- MUSIC ---------- */
+document.addEventListener("click",()=>{
+const m=document.getElementById("music");
+m.play().catch(()=>{});
+},{once:true});
+
+/* ---------- STARS ---------- */
+const starCanvas=document.getElementById("stars");
+const starCtx=starCanvas.getContext("2d");
+
+function resize(){
+starCanvas.width=innerWidth;
+starCanvas.height=innerHeight;
+}
+resize();
+window.addEventListener("resize",resize);
+
+const stars=[];
+for(let i=0;i<120;i++)
+stars.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,s:Math.random()*1});
+
+function starLoop(){
+starCtx.clearRect(0,0,innerWidth,innerHeight);
+starCtx.fillStyle="#ff4d88";
+stars.forEach(s=>{
+starCtx.fillRect(s.x,s.y,2,2);
+s.y+=s.s;
+if(s.y>innerHeight) s.y=0;
+});
+requestAnimationFrame(starLoop);
+}
+starLoop();
+
+/* ---------- BALLOONS FROM DIFFERENT SIDES ---------- */
+const balloons=["balloons/b1.png","balloons/b2.png","balloons/b3.png","balloons/b4.png","balloons/b5.png","balloons/b6.png","balloons/b7.png"];
+
+function spawnBalloons(count){
+for(let i=0;i<count;i++){
+const img=document.createElement("img");
+img.src=balloons[Math.floor(Math.random()*balloons.length)];
+img.className="balloon";
+
+const side=Math.random();
+
+if(side<0.5){
+img.style.left=Math.random()*innerWidth+"px";
+img.style.top=innerHeight+"px";
+}else{
+img.style.left="-80px";
+img.style.top=Math.random()*innerHeight+"px";
+}
+
+document.body.appendChild(img);
+
+img.animate([
+{transform:"translate(0,0)"},
+{transform:`translate(${Math.random()*200}px,-${innerHeight+200}px)`}
+],{duration:8000});
+
+setTimeout(()=>img.remove(),8000);
+}
+}
+
+/* ---------- HEARTS ---------- */
+function spawnHearts(count){
+for(let i=0;i<count;i++){
+const h=document.createElement("div");
+h.className="heart";
+h.style.left=Math.random()*innerWidth+"px";
+h.style.top=innerHeight+"px";
+document.body.appendChild(h);
+
+h.animate([
+{transform:"translateY(0) rotate(45deg)",opacity:1},
+{transform:`translate(${Math.random()*200-100}px,-${innerHeight+200}px) rotate(45deg)`,opacity:0}
+],{duration:6000});
+
+setTimeout(()=>h.remove(),6000);
+}
+}
+
+/* ---------- FIREWORKS ---------- */
+const fwCanvas=document.getElementById("fireworks");
+const fwCtx=fwCanvas.getContext("2d");
+fwCanvas.width=innerWidth;
+fwCanvas.height=innerHeight;
+
+const sparks=[];
+
+function launch(){
+const x=Math.random()*innerWidth;
+const y=Math.random()*innerHeight/2;
+for(let i=0;i<50;i++)
+sparks.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:60,color:`hsl(${Math.random()*360},100%,60%)`});
+}
+
+function fwLoop(){
+fwCtx.clearRect(0,0,innerWidth,innerHeight);
+sparks.forEach((s,i)=>{
+fwCtx.fillStyle=s.color;
+fwCtx.fillRect(s.x,s.y,3,3);
+s.x+=s.vx;
+s.y+=s.vy;
+s.vy+=.05;
+s.life--;
+if(s.life<=0) sparks.splice(i,1);
+});
+requestAnimationFrame(fwLoop);
+}
+fwLoop();
+
+function finale(){
+for(let i=0;i<8;i++)
+setTimeout(launch,i*400);
+}
+</script>
+</body>
+</html>
